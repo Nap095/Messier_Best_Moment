@@ -1,0 +1,5 @@
+Je voudrais un programme python donnant pour une année complête le moment où chaque objet de Messier est à son zénith.
+Le programme indiquera, pour chaque jour de l'année, les informations suivantes : le nom de l'objet (exemple M1), la date, l'heure UTC, la direction où le cherche : altitude et direction en degré mais aussi globalement la direction (N,S,E,O, NE, NO, SE, SO) et si visible la nuit
+On fournira les coordonnées de la position d'observation (exemple : 49° 07′ 00″ nord, 2° 18′ 00″ est, altitude = 55m) et l'année pour laquelle on souhaite faite le calcul
+Le programme affichera les résultats à l'écran mais il les stockera aussi dans un fichier CSV (séparateur;) exploitable dans Excel
+La colonne "visible la nuit" indiquera si l'objet est visible entre le couché et le levé astronomique
