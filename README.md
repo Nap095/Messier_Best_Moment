@@ -2,6 +2,38 @@
 
 Programme Python pour calculer, pour chaque objet Messier (M1 a M110) et pour chaque jour d'une annee, l'instant de culmination (passage au meridien local), la direction de pointage, et la visibilite pendant la nuit astronomique.
 
+## Installation
+
+### 1. Recuperation depuis GitHub
+
+Si le projet est deja publie sur GitHub, clonez-le avec :
+
+```powershell
+git clone https://github.com/Nap095/Messier_Best_Moment.git
+cd Messier_Best_Moment
+```
+
+Si vous preferez telecharger une archive, ouvrez la page du depot GitHub puis utilisez le bouton de telechargement du code (format ZIP).
+
+### 2. Configuration Python
+
+Le programme ne depend que de la bibliotheque standard Python. Vous pouvez l'executer directement avec votre Python systeme ou dans un environnement virtuel.
+
+Exemple avec un environnement virtuel local :
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+### 3. Execution
+
+```powershell
+python .\messier_zenith.py --year 2026 --latitude "49 07 00 N" --longitude "2 18 00 E" --altitude-m 55
+```
+
+Le fichier CSV est genere dans le dossier du projet. Par defaut, le nom est `messier_zenith_2026.csv`.
+
 ## Fichiers du projet
 
 - `messier_zenith.py` : script principal
