@@ -4,6 +4,7 @@ import argparse
 import csv
 import math
 import re
+import sys
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
@@ -428,9 +429,7 @@ def build_parser() -> argparse.ArgumentParser:
 	return parser
 
 
-def main() -> int:
-	parser = build_parser()
-	args = parser.parse_args()
+def run_generation(args: argparse.Namespace) -> Path:
 
 	lat_deg = parse_angle(args.latitude, is_latitude=True)
 	lon_deg = parse_angle(args.longitude, is_latitude=False)
@@ -447,18 +446,18 @@ def main() -> int:
 		output_path = Path(f"messier_zenith_{suffix}{args.year}.csv")
 
 	header = [
-		"objet",
-		"nom_familier",
+		"object",
+		"common_name",
 		"date",
-		"heure_utc",
+		"utc_time",
 		"altitude_deg",
-		"azimut_deg",
+		"azimuth_deg",
 		"direction",
-		"visible_la_nuit",
-		"lune_levee",
-		"lune_age_jours",
-		"lune_illumination_pct",
-		"distance_lune_objet_deg",
+		"visible_at_night",
+		"moon_up",
+		"moon_age_days",
+		"moon_illumination_pct",
+		"moon_object_distance_deg",
 	]
 
 	with output_path.open("w", newline="", encoding="utf-8-sig") as f:
@@ -513,6 +512,219 @@ def main() -> int:
 		f"\nFichier genere: {output_path} | annee={args.year} | latitude={lat_deg:.6f} | "
 		f"longitude={lon_deg:.6f} | altitude_m={args.altitude_m:.1f}"
 	)
+	return output_path
+
+
+def launch_gui() -> int:
+	try:
+		import tkinter as tk
+		from tkinter import messagebox
+	except Exception as exc:
+		print(f"Tkinter indisponible: {exc}")
+		print("Veuillez utiliser les arguments CLI (--help) pour lancer le calcul.")
+		return 2
+
+	texts = {
+		"fr": {
+			"title": "Messier - Parametres de calcul",
+			"language": "Langue",
+			"year": "Annee",
+			"year_help": "Annee complete a calculer, par exemple: 2026",
+			"latitude": "Latitude",
+			"latitude_help": "Position Nord/Sud en decimal ou DMS. Ex: 49.1167 ou 49 07 00 N",
+			"longitude": "Longitude",
+			"longitude_help": "Position Est/Ouest en decimal ou DMS. Ex: 2.3 ou 2 18 00 E",
+			"altitude": "Altitude (m)",
+			"altitude_help": "Altitude du lieu en metres (optionnel). Defaut: 0",
+			"catalog": "Fichier catalogue",
+			"catalog_help": "CSV source des objets Messier (name;common_name;ra;dec)",
+			"output": "Fichier de sortie",
+			"output_help": "Chemin CSV resultat. Vide = nom automatique",
+			"resume": "Mode resume",
+			"resume_help": "Si coche: exporte seulement les objets visibles la nuit",
+			"run": "Lancer le calcul",
+			"ok_title": "Termine",
+			"ok_msg": "Calcul termine. Fichier genere:\n{path}",
+			"error_title": "Erreur",
+			"required": "Les champs Annee, Latitude et Longitude sont obligatoires.",
+			"running": "Calcul en cours...",
+			"ready": "Pret",
+		},
+		"en": {
+			"title": "Messier - Calculation Parameters",
+			"language": "Language",
+			"year": "Year",
+			"year_help": "Full year to compute, for example: 2026",
+			"latitude": "Latitude",
+			"latitude_help": "North/South position in decimal or DMS. Ex: 49.1167 or 49 07 00 N",
+			"longitude": "Longitude",
+			"longitude_help": "East/West position in decimal or DMS. Ex: 2.3 or 2 18 00 E",
+			"altitude": "Altitude (m)",
+			"altitude_help": "Observer altitude in meters (optional). Default: 0",
+			"catalog": "Catalog file",
+			"catalog_help": "Source Messier CSV (name;common_name;ra;dec)",
+			"output": "Output file",
+			"output_help": "Result CSV path. Empty = automatic name",
+			"resume": "Summary mode",
+			"resume_help": "If checked: export only objects visible at night",
+			"run": "Run calculation",
+			"ok_title": "Done",
+			"ok_msg": "Calculation complete. Generated file:\n{path}",
+			"error_title": "Error",
+			"required": "Year, Latitude and Longitude are required.",
+			"running": "Calculation in progress...",
+			"ready": "Ready",
+		},
+	}
+
+	root = tk.Tk()
+	root.geometry("860x510")
+	root.resizable(True, True)
+
+	lang_var = tk.StringVar(value="fr")
+
+	labels: dict[str, tk.Label] = {}
+	help_labels: dict[str, tk.Label] = {}
+
+	values = {
+		"year": tk.StringVar(value=str(date.today().year)),
+		"latitude": tk.StringVar(value=""),
+		"longitude": tk.StringVar(value=""),
+		"altitude_m": tk.StringVar(value="0"),
+		"catalog": tk.StringVar(value="messier_catalog.csv"),
+		"output": tk.StringVar(value=""),
+		"resume": tk.BooleanVar(value=False),
+	}
+
+	language_frame = tk.Frame(root)
+	language_frame.pack(fill="x", padx=12, pady=(12, 6))
+	language_label = tk.Label(language_frame, anchor="w")
+	language_label.pack(side="left")
+	language_menu = tk.OptionMenu(language_frame, lang_var, "fr", "en")
+	language_menu.pack(side="left", padx=(10, 0))
+
+	form = tk.Frame(root)
+	form.pack(fill="both", expand=True, padx=12, pady=6)
+	form.grid_columnconfigure(1, weight=1)
+
+	rows = [
+		("year", values["year"]),
+		("latitude", values["latitude"]),
+		("longitude", values["longitude"]),
+		("altitude", values["altitude_m"]),
+		("catalog", values["catalog"]),
+		("output", values["output"]),
+	]
+
+	for idx, (key, var) in enumerate(rows):
+		row_offset = idx * 2
+		labels[key] = tk.Label(form, anchor="w", width=20)
+		labels[key].grid(row=row_offset, column=0, sticky="w", pady=(4, 0))
+		entry = tk.Entry(form, textvariable=var)
+		entry.grid(row=row_offset, column=1, sticky="ew", padx=(6, 0), pady=(4, 0))
+
+		help_labels[key] = tk.Label(form, anchor="w", justify="left", fg="#4d4d4d")
+		help_labels[key].grid(row=row_offset + 1, column=0, columnspan=2, sticky="w", pady=(0, 4))
+
+	resume_row = len(rows) * 2
+	resume_check = tk.Checkbutton(form, variable=values["resume"], anchor="w", justify="left")
+	resume_check.grid(row=resume_row, column=0, columnspan=2, sticky="w", pady=(10, 0))
+	help_labels["resume"] = tk.Label(form, anchor="w", justify="left", fg="#4d4d4d")
+	help_labels["resume"].grid(row=resume_row + 1, column=0, columnspan=2, sticky="w", pady=(0, 8))
+
+	footer = tk.Frame(root)
+	footer.pack(fill="x", padx=12, pady=(0, 12))
+	status_var = tk.StringVar(value="")
+	status = tk.Label(footer, textvariable=status_var, anchor="w")
+	status.pack(side="left")
+	run_button = tk.Button(footer)
+	run_button.pack(side="right")
+
+	def t(key: str) -> str:
+		return texts[lang_var.get()][key]
+
+	def refresh_ui() -> None:
+		root.title(t("title"))
+		language_label.config(text=f"{t('language')}: ")
+		labels["year"].config(text=t("year"))
+		help_labels["year"].config(text=t("year_help"))
+		labels["latitude"].config(text=t("latitude"))
+		help_labels["latitude"].config(text=t("latitude_help"))
+		labels["longitude"].config(text=t("longitude"))
+		help_labels["longitude"].config(text=t("longitude_help"))
+		labels["altitude"].config(text=t("altitude"))
+		help_labels["altitude"].config(text=t("altitude_help"))
+		labels["catalog"].config(text=t("catalog"))
+		help_labels["catalog"].config(text=t("catalog_help"))
+		labels["output"].config(text=t("output"))
+		help_labels["output"].config(text=t("output_help"))
+		resume_check.config(text=t("resume"))
+		help_labels["resume"].config(text=t("resume_help"))
+		run_button.config(text=t("run"))
+		if not status_var.get() or status_var.get() in {
+			texts["fr"]["ready"],
+			texts["en"]["ready"],
+			texts["fr"]["running"],
+			texts["en"]["running"],
+		}:
+			status_var.set(t("ready"))
+
+	def on_run() -> None:
+		year_raw = values["year"].get().strip()
+		latitude_raw = values["latitude"].get().strip()
+		longitude_raw = values["longitude"].get().strip()
+		altitude_raw = values["altitude_m"].get().strip()
+		catalog_raw = values["catalog"].get().strip() or "messier_catalog.csv"
+		output_raw = values["output"].get().strip()
+
+		if not year_raw or not latitude_raw or not longitude_raw:
+			messagebox.showerror(t("error_title"), t("required"))
+			return
+
+		try:
+			args = argparse.Namespace(
+				year=int(year_raw),
+				latitude=latitude_raw,
+				longitude=longitude_raw,
+				altitude_m=float(altitude_raw or "0"),
+				catalog=catalog_raw,
+				output=output_raw or None,
+				resume=bool(values["resume"].get()),
+			)
+		except ValueError as exc:
+			messagebox.showerror(t("error_title"), str(exc))
+			return
+
+		run_button.config(state="disabled")
+		status_var.set(t("running"))
+		root.update_idletasks()
+
+		try:
+			output_path = run_generation(args)
+		except Exception as exc:
+			messagebox.showerror(t("error_title"), str(exc))
+		else:
+			messagebox.showinfo(t("ok_title"), t("ok_msg").format(path=output_path))
+		finally:
+			run_button.config(state="normal")
+			status_var.set(t("ready"))
+
+	lang_var.trace_add("write", lambda *_: refresh_ui())
+	run_button.config(command=on_run)
+	refresh_ui()
+
+	root.mainloop()
+	return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+	parser = build_parser()
+	cli_args = sys.argv[1:] if argv is None else argv
+	if not cli_args:
+		return launch_gui()
+
+	args = parser.parse_args(cli_args)
+	run_generation(args)
 	return 0
 
 

@@ -28,6 +28,22 @@ python -m venv .venv
 
 ### 3. Execution
 
+#### Mode interface (sans argument)
+
+Si vous lancez le script sans argument, une interface Tkinter s'ouvre pour saisir les parametres.
+
+```powershell
+python .\messier_zenith.py
+```
+
+L'interface propose :
+
+- une explication pour chaque champ (annee, latitude, longitude, etc.)
+- un bouton pour lancer le calcul
+- une langue par defaut en Francais avec possibilite de basculer en Anglais
+
+#### Mode ligne de commande (avec arguments)
+
 ```powershell
 python .\messier_zenith.py --year 2026 --latitude "49 07 00 N" --longitude "2 18 00 E" --altitude-m 55
 ```
@@ -101,18 +117,18 @@ Directions acceptees :
 
 Separateur CSV : `;` (compatible Excel)
 
-- `objet` : nom Messier (`M1` ... `M110`)
-- `nom_familier` : nom usuel de l'objet quand disponible (ex: `Andromeda Galaxy` pour `M31`)
+- `object` : nom Messier (`M1` ... `M110`)
+- `common_name` : nom usuel de l'objet quand disponible (ex: `Andromeda Galaxy` pour `M31`)
 - `date` : date UTC (`YYYY-MM-DD`)
-- `heure_utc` : heure UTC de culmination (`HH:MM:SS`)
+- `utc_time` : heure UTC de culmination (`HH:MM:SS`)
 - `altitude_deg` : altitude en degres
-- `azimut_deg` : azimut en degres (0 = Nord, 90 = Est, 180 = Sud, 270 = Ouest)
+- `azimuth_deg` : azimut en degres (0 = Nord, 90 = Est, 180 = Sud, 270 = Ouest)
 - `direction` : direction globale (`N`, `NE`, `E`, `SE`, `S`, `SO`, `O`, `NO`)
-- `visible_la_nuit` : `Oui` si la culmination est dans la nuit astronomique et au-dessus de l'horizon, sinon `Non`
-- `lune_levee` : `Oui` si la Lune est au-dessus de l'horizon a l'instant de culmination, sinon `Non`
-- `lune_age_jours` : age de la Lune en jours depuis la Nouvelle Lune (approximation)
-- `lune_illumination_pct` : pourcentage illumine du disque lunaire (approximation)
-- `distance_lune_objet_deg` : separation angulaire geocentrique entre la Lune et l'objet Messier (en degres)
+- `visible_at_night` : `Oui` si la culmination est dans la nuit astronomique et au-dessus de l'horizon, sinon `Non`
+- `moon_up` : `Oui` si la Lune est au-dessus de l'horizon a l'instant de culmination, sinon `Non`
+- `moon_age_days` : age de la Lune en jours depuis la Nouvelle Lune (approximation)
+- `moon_illumination_pct` : pourcentage illumine du disque lunaire (approximation)
+- `moon_object_distance_deg` : separation angulaire geocentrique entre la Lune et l'objet Messier (en degres)
 
 ## Exemple avec sortie personnalisee
 
